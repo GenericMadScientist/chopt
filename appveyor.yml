@@ -33,9 +33,6 @@ for:
 
     test_script:
     - cmd: ctest --verbose -C %CONFIGURATION%
-    - cmd: cd ..
-    - cmd: set PATH=C:/Python39-x64;C:/Python39-x64/Scripts;%PATH%
-    - cmd: python integration_tests/run_integration_tests.py
 
   -
     matrix:
