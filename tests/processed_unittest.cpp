@@ -691,7 +691,7 @@ TEST_CASE("Video lag is taken account of")
     }
 }
 
-TEST_CASE("path_summary produces the correct output", "Path summary")
+TEST_CASE("path_summary produces the correct output")
 {
     std::vector<Note<NoteColour>> notes {{0}, {192}, {384}, {576}, {6144}};
     std::vector<StarPower> phrases {{0, 50}, {192, 50}, {384, 50}, {6144, 50}};
@@ -706,12 +706,9 @@ TEST_CASE("path_summary produces the correct output", "Path summary")
                      Beat {0.0}}},
                    100};
 
-        const char* desired_path_output
-            = "Path: 2(+1)-ES1\n"
-              "No SP score: 350\n"
-              "Total score: 450\n"
-              "Average multiplier: 1.400x\n"
-              "Activation 1: Measure 1.5 to Measure 1.75";
+        const char* desired_path_output = "No SP score: 350\n"
+                                          "Total score: 450\n"
+                                          "Average multiplier: 1.400x";
 
         REQUIRE(track.path_summary(path) == desired_path_output);
     }
@@ -722,12 +719,9 @@ TEST_CASE("path_summary produces the correct output", "Path summary")
                      Beat {0.0}}},
                    50};
 
-        const char* desired_path_output
-            = "Path: 3-ES1\n"
-              "No SP score: 350\n"
-              "Total score: 400\n"
-              "Average multiplier: 1.200x\n"
-              "Activation 1: Measure 1.75 to Measure 1.75";
+        const char* desired_path_output = "No SP score: 350\n"
+                                          "Total score: 400\n"
+                                          "Average multiplier: 1.200x";
 
         REQUIRE(track.path_summary(path) == desired_path_output);
     }
@@ -738,12 +732,9 @@ TEST_CASE("path_summary produces the correct output", "Path summary")
                      Beat {0.0}}},
                    50};
 
-        const char* desired_path_output
-            = "Path: 3(+1)\n"
-              "No SP score: 350\n"
-              "Total score: 400\n"
-              "Average multiplier: 1.200x\n"
-              "Activation 1: Measure 9 to Measure 9";
+        const char* desired_path_output = "No SP score: 350\n"
+                                          "Total score: 400\n"
+                                          "Average multiplier: 1.200x";
 
         REQUIRE(track.path_summary(path) == desired_path_output);
     }
@@ -755,8 +746,7 @@ TEST_CASE("path_summary produces the correct output", "Path summary")
         ProcessedSong second_track {second_note_track, {},         1.0, 1.0,
                                     Second(0.0),       Second(0.0)};
 
-        const char* desired_path_output = "Path: None\n"
-                                          "No SP score: 350\n"
+        const char* desired_path_output = "No SP score: 350\n"
                                           "Total score: 350\n"
                                           "Average multiplier: 1.000x";
 
