@@ -282,55 +282,15 @@ ProcessedSong::is_candidate_valid(const ActivationCandidate& activation,
 
 std::string ProcessedSong::path_summary(const Path& path) const
 {
-    constexpr auto DEFAULT_PRECISION = 6;
-
     // We use std::stringstream instead of std::string for better formating of
     // floats (measure values).
     std::stringstream stream;
-    stream << "Path: ";
-
-    std::vector<std::string> activation_summaries;
-    auto start_point = m_points.cbegin();
-    for (const auto& act : path.activations) {
-        const auto sp_before
-            = std::count_if(start_point, act.act_start, [](const auto& p) {
-                  return p.is_sp_granting_note;
-              });
-        const auto sp_during = std::count_if(
-            act.act_start, std::next(act.act_end),
-            [](const auto& p) { return p.is_sp_granting_note; });
-        auto summary = std::to_string(sp_before);
-        if (sp_during != 0) {
-            summary += "(+";
-            summary += std::to_string(sp_during);
-            summary += ")";
-        }
-        activation_summaries.push_back(summary);
-        start_point = std::next(act.act_end);
-    }
-
-    const auto spare_sp
-        = std::count_if(start_point, m_points.cend(),
-                        [](const auto& p) { return p.is_sp_granting_note; });
-    if (spare_sp != 0) {
-        activation_summaries.push_back(std::string("ES")
-                                       + std::to_string(spare_sp));
-    }
-
-    if (activation_summaries.empty()) {
-        stream << "None";
-    } else {
-        stream << activation_summaries[0];
-        for (std::size_t i = 1; i < activation_summaries.size(); ++i) {
-            stream << "-" << activation_summaries[i];
-        }
-    }
 
     auto no_sp_score = std::accumulate(
         m_points.cbegin(), m_points.cend(), 0,
         [](const auto x, const auto& y) { return x + y.value; });
     no_sp_score += m_total_solo_boost;
-    stream << "\nNo SP score: " << no_sp_score;
+    stream << "No SP score: " << no_sp_score;
 
     const auto total_score = no_sp_score + path.score_boost;
     stream << "\nTotal score: " << total_score;
@@ -340,15 +300,6 @@ std::string ProcessedSong::path_summary(const Path& path) const
     stream.setf(std::ios_base::fixed, std::ios_base::floatfield);
     stream << std::setprecision(3);
     stream << "\nAverage multiplier: " << avg_mult << 'x';
-
-    stream.setf(std::ios_base::fmtflags(), std::ios_base::floatfield);
-    stream << std::setprecision(DEFAULT_PRECISION);
-    for (std::size_t i = 0; i < path.activations.size(); ++i) {
-        stream << "\nActivation " << i + 1 << ": Measure "
-               << path.activations[i].act_start->position.measure.value() + 1
-               << " to Measure "
-               << path.activations[i].act_end->position.measure.value() + 1;
-    }
 
     return stream.str();
 }

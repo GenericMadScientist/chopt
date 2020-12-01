@@ -532,28 +532,22 @@ make_builder_from_track(const Song& song, const NoteTrack<T>& track,
                                          settings.squeeze,
                                          Second {settings.lazy_whammy},
                                          Second {settings.video_lag}};
-    Path path;
 
     // Nesting with if constexpr is purely to keep MSVC warnings happy.
     if constexpr (std::is_same_v<T, DrumNoteColour>) {
         // Needed to keep GCC warnings happy since we never use terminate in the
         // case of drums.
         (void)terminate;
-        if (!settings.blank) {
-            write("Optimisation disabled for drums");
-        }
-    } else if (!settings.blank) {
+        write("Optimisation disabled for drums");
+    } else {
         write("Optimising, please wait...");
         const Optimiser optimiser {&processed_track, terminate};
-        path = optimiser.optimal_path();
+        const auto path = optimiser.optimal_path();
         write(processed_track.path_summary(path).c_str());
-        builder.add_sp_acts(processed_track.points(),
-                            processed_track.converter(), path);
-        builder.activation_opacity() = settings.opacity;
     }
 
     builder.add_measure_values(processed_track.points(),
-                               processed_track.converter(), path);
+                               processed_track.converter(), {});
     builder.add_sp_values(processed_track.sp_data());
 
     return builder;
