@@ -234,6 +234,10 @@ void ImageBuilder::add_measure_values(const PointSet& points,
                                       const TimeConverter& converter,
                                       const Path& path)
 {
+    // This is needed below because the subtract_video_lag calculation can
+    // introduce some floating point errors.
+    constexpr double MEAS_EPSILON = 1 / 100000.0;
+
     m_base_values.clear();
     m_base_values.resize(m_measure_lines.size() - 1);
 
@@ -251,8 +255,10 @@ void ImageBuilder::add_measure_values(const PointSet& points,
     auto meas_iter = std::next(m_measure_lines.cbegin());
     auto score_value_iter = m_score_values.begin();
     for (auto p = points.cbegin(); p < points.cend(); ++p) {
+        const auto adjusted_p_pos
+            = subtract_video_lag(p->position.beat).value();
         while (meas_iter != m_measure_lines.cend()
-               && *meas_iter <= subtract_video_lag(p->position.beat).value()) {
+               && (*meas_iter - MEAS_EPSILON) <= adjusted_p_pos) {
             ++meas_iter;
             ++base_value_iter;
             ++score_value_iter;
