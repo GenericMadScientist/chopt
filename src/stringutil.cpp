@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,12 +33,13 @@
 #include <locale>
 #endif
 
+#include "songparts.hpp"
 #include "stringutil.hpp"
 
 std::string_view break_off_newline(std::string_view& input)
 {
     if (input.empty()) {
-        throw std::invalid_argument("No lines left");
+        throw ParseError("No lines left");
     }
 
     const auto newline_location = input.find_first_of("\r\n");
@@ -106,6 +107,32 @@ static bool string_starts_with(std::string_view input, std::string_view pattern)
     }
 
     return input.substr(0, pattern.size()) == pattern;
+}
+
+std::string to_ordinal(int ordinal)
+{
+    constexpr int TENS_MODULUS = 10;
+    constexpr int HUNDREDS_MODULUS = 100;
+    constexpr std::array<int, 3> EXCEPTIONAL_TEENS {11, 12, 13};
+
+    if (ordinal < 0) {
+        throw std::runtime_error("ordinal was negative");
+    }
+    if (std::find(EXCEPTIONAL_TEENS.cbegin(), EXCEPTIONAL_TEENS.cend(),
+                  ordinal % HUNDREDS_MODULUS)
+        != EXCEPTIONAL_TEENS.cend()) {
+        return std::to_string(ordinal) + "th";
+    }
+    if (ordinal % TENS_MODULUS == 1) {
+        return std::to_string(ordinal) + "st";
+    }
+    if (ordinal % TENS_MODULUS == 2) {
+        return std::to_string(ordinal) + "nd";
+    }
+    if (ordinal % TENS_MODULUS == 3) {
+        return std::to_string(ordinal) + "rd";
+    }
+    return std::to_string(ordinal) + "th";
 }
 
 std::string to_utf8_string(std::string_view input)

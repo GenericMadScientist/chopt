@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -233,6 +233,66 @@ static std::vector<int> score_totals(const std::vector<Point>& points)
     return scores;
 }
 
+static std::string to_colour_string(const std::vector<NoteColour>& colours)
+{
+    const std::vector<std::tuple<NoteColour, std::string>> COLOUR_NAMES {
+        {NoteColour::Green, "G"},  {NoteColour::Red, "R"},
+        {NoteColour::Yellow, "Y"}, {NoteColour::Blue, "B"},
+        {NoteColour::Orange, "O"}, {NoteColour::Open, "open"}};
+
+    std::string colour_string;
+    for (const auto& [colour, string] : COLOUR_NAMES) {
+        if (std::find(colours.cbegin(), colours.cend(), colour)
+            != colours.cend()) {
+            colour_string += string;
+        }
+    }
+
+    return colour_string;
+}
+
+static std::string to_colour_string(const std::vector<GHLNoteColour>& colours)
+{
+    const std::vector<std::tuple<GHLNoteColour, std::string>> COLOUR_NAMES {
+        {GHLNoteColour::WhiteLow, "W1"},  {GHLNoteColour::WhiteMid, "W2"},
+        {GHLNoteColour::WhiteHigh, "W3"}, {GHLNoteColour::BlackLow, "B1"},
+        {GHLNoteColour::BlackMid, "B2"},  {GHLNoteColour::BlackHigh, "B3"},
+        {GHLNoteColour::Open, "open"}};
+
+    std::string colour_string;
+    for (const auto& [colour, string] : COLOUR_NAMES) {
+        if (std::find(colours.cbegin(), colours.cend(), colour)
+            != colours.cend()) {
+            colour_string += string;
+        }
+    }
+
+    return colour_string;
+}
+
+template <typename T>
+static std::vector<std::string> note_colours(const std::vector<Note<T>>& notes,
+                                             const std::vector<Point>& points)
+{
+    std::vector<std::string> colours;
+    colours.reserve(points.size());
+    auto note_ptr = notes.cbegin();
+    for (const auto& p : points) {
+        if (p.is_hold_point) {
+            colours.emplace_back("");
+            continue;
+        }
+        std::vector<T> current_colours;
+        const auto position = note_ptr->position;
+        while ((note_ptr != notes.cend()) && (note_ptr->position == position)) {
+            current_colours.push_back(note_ptr->colour);
+            ++note_ptr;
+        }
+        colours.push_back(to_colour_string(current_colours));
+    }
+    return colours;
+}
+
 PointSet::PointSet(const NoteTrack<NoteColour>& track,
                    const TimeConverter& converter, double squeeze,
                    Second video_lag)
@@ -243,6 +303,7 @@ PointSet::PointSet(const NoteTrack<NoteColour>& track,
                                             converter)}
     , m_cumulative_score_totals {score_totals(m_points)}
     , m_video_lag {video_lag}
+    , m_colours {note_colours(track.notes(), m_points)}
 {
 }
 
@@ -256,6 +317,7 @@ PointSet::PointSet(const NoteTrack<GHLNoteColour>& track,
                                             converter)}
     , m_cumulative_score_totals {score_totals(m_points)}
     , m_video_lag {video_lag}
+    , m_colours {note_colours(track.notes(), m_points)}
 {
 }
 

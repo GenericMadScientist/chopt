@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "catch.hpp"
 
 #include "chart.hpp"
+#include "songparts.hpp"
 
 static bool operator==(const BpmEvent& lhs, const BpmEvent& rhs)
 {
@@ -82,7 +83,7 @@ TEST_CASE("Parser does not infinite loop on an unfinished section")
 {
     const char* text = "[UnrecognisedSection]\n{\n";
 
-    REQUIRE_THROWS([&] { return parse_chart(text); }());
+    REQUIRE_THROWS_AS([&] { return parse_chart(text); }(), ParseError);
 }
 
 TEST_CASE("Key value pairs are read")
@@ -110,7 +111,7 @@ TEST_CASE("Note events with extra spaces cause an exception")
 {
     const char* text = "[Section]\n{\n768 = N  0 0\n}";
 
-    REQUIRE_THROWS([&] { return parse_chart(text); }());
+    REQUIRE_THROWS_AS([&] { return parse_chart(text); }(), ParseError);
 }
 
 TEST_CASE("BPM events are read")
@@ -187,5 +188,19 @@ TEST_CASE("Charts in UTF-16le must be an even number of bytes large")
         "\x00\x7B\x00\x0D\x00\x0A\x00\x7D\x00\x00",
         27};
 
-    REQUIRE_THROWS([&] { return parse_chart(text); }());
+    REQUIRE_THROWS_AS([&] { return parse_chart(text); }(), ParseError);
+}
+
+TEST_CASE("Single character headers should throw an error")
+{
+    REQUIRE_THROWS_AS([] { return parse_chart("\n"); }(), ParseError);
+}
+
+TEST_CASE("Short mid-section lines throw an error")
+{
+    REQUIRE_THROWS_AS(
+        [&] { return parse_chart("[ExpertGuitar]\n{\n1 1\n}"); }(), ParseError);
+    REQUIRE_THROWS_AS(
+        [&] { return parse_chart("[ExpertGuitar]\n{\n1 = N 1\n}"); }(),
+        ParseError);
 }

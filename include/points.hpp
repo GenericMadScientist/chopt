@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #ifndef CHOPT_POINTS_HPP
 #define CHOPT_POINTS_HPP
 
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -45,6 +46,7 @@ private:
     const std::vector<std::tuple<Position, int>> m_solo_boosts;
     const std::vector<int> m_cumulative_score_totals;
     const Second m_video_lag;
+    const std::vector<std::string> m_colours;
 
 public:
     PointSet(const NoteTrack<NoteColour>& track, const TimeConverter& converter,
@@ -57,6 +59,11 @@ public:
     [[nodiscard]] PointPtr cend() const { return m_points.cend(); }
     [[nodiscard]] PointPtr next_non_hold_point(PointPtr point) const;
     [[nodiscard]] PointPtr next_sp_granting_note(PointPtr point) const;
+    [[nodiscard]] std::string colour_set(PointPtr point) const
+    {
+        return m_colours[static_cast<std::size_t>(
+            std::distance(m_points.cbegin(), point))];
+    }
     // Get the combined score of all points that are >= start and < end.
     [[nodiscard]] int range_score(PointPtr start, PointPtr end) const;
     [[nodiscard]] const std::vector<std::tuple<Position, int>>&

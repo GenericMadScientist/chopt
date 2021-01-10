@@ -29,10 +29,11 @@ more star power phrases before activating. One example is the optimal path for
 Higan Servant ~ One Conclusion from Anti Hero: Beach Episode, which is
 5(+1)-2(+1).
 
-CHOpt will also give the start and end of every activation in text. The bounds
-refer to the position of the first and last note of the activation (or position
-where you get a point from a sustain), rather than where Star Power should start
-and end. The generated image should be consulted for more detailed guidance.
+CHOpt will also give the start of every activation in text. NN means next note,
+otherwise it will count notes (1st G, 3rd RBO, and so on). If the activation is
+mid sustain it will specify roughly where to activate. This is currently very
+rudimentary though and it doesn't try if you do not get a phrase before an
+activation.
 
 ## Images
 

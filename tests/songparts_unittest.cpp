@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,6 +86,14 @@ TEST_CASE("NoteTrack ctor maintains invariants")
             {768, 768, NoteColour::Green}, {768, 0, NoteColour::Red}};
 
         REQUIRE(track.notes() == required_notes);
+    }
+
+    SECTION("Resolution is positive")
+    {
+        std::vector<Note<NoteColour>> notes {{768}};
+        REQUIRE_THROWS_AS(
+            [&] { return NoteTrack<NoteColour>(notes, {}, {}, 0); }(),
+            ParseError);
     }
 
     SECTION("Empty SP phrases are culled")
@@ -288,16 +296,34 @@ TEST_CASE("SyncTrack ctor maintains invariants")
 
     SECTION("BPMs must not be zero or negative")
     {
-        REQUIRE_THROWS([&] { return SyncTrack {{}, {{192, 0}}}; }());
-        REQUIRE_THROWS([&] { return SyncTrack {{}, {{192, -1}}}; }());
+        REQUIRE_THROWS_AS(([&] {
+                              return SyncTrack {{}, {{192, 0}}};
+                          })(),
+                          ParseError);
+        REQUIRE_THROWS_AS(([&] {
+                              return SyncTrack {{}, {{192, -1}}};
+                          })(),
+                          ParseError);
     }
 
     SECTION("Time Signatures must be positive/positive")
     {
-        REQUIRE_THROWS([&] { return SyncTrack {{{0, 0, 4}}, {}}; }());
-        REQUIRE_THROWS([&] { return SyncTrack {{{0, -1, 4}}, {}}; }());
-        REQUIRE_THROWS([&] { return SyncTrack {{{0, 4, 0}}, {}}; }());
-        REQUIRE_THROWS([&] { return SyncTrack {{{0, 4, -1}}, {}}; }());
+        REQUIRE_THROWS_AS(([&] {
+                              return SyncTrack {{{0, 0, 4}}, {}};
+                          })(),
+                          ParseError);
+        REQUIRE_THROWS_AS(([&] {
+                              return SyncTrack {{{0, -1, 4}}, {}};
+                          })(),
+                          ParseError);
+        REQUIRE_THROWS_AS(([&] {
+                              return SyncTrack {{{0, 4, 0}}, {}};
+                          })(),
+                          ParseError);
+        REQUIRE_THROWS_AS(([&] {
+                              return SyncTrack {{{0, 4, -1}}, {}};
+                          })(),
+                          ParseError);
     }
 }
 

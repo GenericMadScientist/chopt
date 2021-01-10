@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,13 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <algorithm>
 #include <climits>
 #include <cstddef>
-#include <stdexcept>
 #include <utility>
 
 #include "midi.hpp"
+#include "songparts.hpp"
 
 // This is a version of string_view for uint8_t. Once C++20 is ratified we can
 // replace this with span<uint8_t>.
@@ -61,7 +60,7 @@ public:
     std::uint8_t operator[](std::size_t index) const
     {
         if (index >= m_size) {
-            throw std::invalid_argument("index too large");
+            throw ParseError("index too large");
         }
         return *(m_begin + static_cast<std::ptrdiff_t>(index));
     }
@@ -73,14 +72,14 @@ public:
                                    std::size_t count = MAX_SIZE) const
     {
         if (offset > m_size) {
-            throw std::invalid_argument("offset would be OOB");
+            throw ParseError("offset would be OOB");
         }
         if (count == MAX_SIZE) {
             return ByteSpan {m_begin + static_cast<std::ptrdiff_t>(offset),
                              m_end};
         }
         if (count > m_size - offset) {
-            throw std::invalid_argument("count is too large");
+            throw ParseError("count is too large");
         }
         return ByteSpan {m_begin + static_cast<std::ptrdiff_t>(offset),
                          m_begin + static_cast<std::ptrdiff_t>(offset + count)};
@@ -117,12 +116,12 @@ static ByteSpan read_midi_header(ByteSpan span, MidiHeader& header)
     const auto first_ten_bytes = span.subspan(0, MAGIC_NUMBER.size());
     if (!std::equal(first_ten_bytes.begin(), first_ten_bytes.end(),
                     MAGIC_NUMBER.cbegin())) {
-        throw std::invalid_argument("Invalid MIDI file");
+        throw ParseError("Invalid MIDI file");
     }
     header.num_of_tracks = read_two_byte_be(span, TRACK_COUNT_OFFSET);
     auto division = read_two_byte_be(span, TICKS_OFFSET);
     if ((division & DIVISION_NEGATIVE_SMPTE_MASK) != 0) {
-        throw std::invalid_argument("Only ticks per quarter-note is supported");
+        throw ParseError("Only ticks per quarter-note is supported");
     }
     header.ticks_per_quarter_note = division;
     return span.subspan(FIRST_TRACK_OFFSET);
@@ -135,7 +134,12 @@ static ByteSpan read_variable_length_num(ByteSpan span, int& number)
     constexpr int VARIABLE_LENGTH_HIGH_MASK = 0x80;
 
     number = 0;
+    int bytes_read = 0;
     while ((span[0] & VARIABLE_LENGTH_HIGH_MASK) != 0) {
+        ++bytes_read;
+        if (bytes_read >= 4) {
+            throw ParseError("Too long variable length number");
+        }
         number <<= VARIABLE_LENGTH_DATA_SIZE;
         number |= span[0] & VARIABLE_LENGTH_DATA_MASK;
         span = span.subspan(1);
@@ -151,6 +155,9 @@ static ByteSpan read_meta_event(ByteSpan span, MetaEvent& event)
     span = span.subspan(1);
     int data_length = 0;
     span = read_variable_length_num(span, data_length);
+    if (static_cast<std::size_t>(data_length) > span.size()) {
+        throw ParseError("Meta Event too long");
+    }
     event.data
         = std::vector<std::uint8_t> {span.begin(), span.begin() + data_length};
     return span.subspan(static_cast<std::size_t>(data_length));
@@ -171,13 +178,12 @@ static ByteSpan read_midi_event(ByteSpan span, MidiEvent& event,
     } else if (prev_status_byte != -1) {
         event_type = static_cast<std::uint8_t>(prev_status_byte);
     } else {
-        throw std::invalid_argument("MIDI Event has no status byte and "
-                                    "there is no running status");
+        throw ParseError(
+            "MIDI Event has no status byte and there is no running status");
     }
 
     if ((event_type & UPPER_NIBBLE_MASK) == SYSTEM_COMMON_MSG_ID) {
-        throw std::invalid_argument(
-            "MIDI Events with high nibble 0xF are not supported");
+        throw ParseError("MIDI Events with high nibble 0xF are not supported");
     }
     if ((event_type & UPPER_NIBBLE_MASK) == PROGRAM_CHANGE_ID
         || (event_type & UPPER_NIBBLE_MASK) == CHANNEL_PRESSURE_ID) {
@@ -196,6 +202,9 @@ static ByteSpan read_sysex_event(ByteSpan span, SysexEvent& event)
 {
     int data_length = 0;
     span = read_variable_length_num(span, data_length);
+    if (static_cast<std::size_t>(data_length) > span.size()) {
+        throw ParseError("Sysex Event too long");
+    }
     event.data
         = std::vector<std::uint8_t> {span.begin(), span.begin() + data_length};
     return span.subspan(static_cast<std::size_t>(data_length));
@@ -209,7 +218,7 @@ static ByteSpan read_midi_track(ByteSpan span, MidiTrack& track)
     constexpr int TRACK_HEADER_SIZE = 8;
 
     if (read_four_byte_be(span, 0) != TRACK_HEADER_MAGIC_NUMBER) {
-        throw std::invalid_argument("Invalid MIDI file");
+        throw ParseError("Invalid MIDI file");
     }
     auto track_size = read_four_byte_be(span, 4);
     span = span.subspan(TRACK_HEADER_SIZE);

@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "catch.hpp"
 
 #include "midi.hpp"
+#include "songparts.hpp"
 
 static std::vector<std::uint8_t>
 midi_from_tracks(const std::vector<std::vector<std::uint8_t>>& track_sections)
@@ -71,7 +72,7 @@ TEST_CASE("parse_midi reads header correctly")
 
     REQUIRE(midi.ticks_per_quarter_note == 0x1E0);
     REQUIRE(midi.tracks.empty());
-    REQUIRE_THROWS([&] { return parse_midi(bad_data); }());
+    REQUIRE_THROWS_AS([&] { return parse_midi(bad_data); }(), ParseError);
 }
 
 TEST_CASE("Division must not be in SMPTE format")
@@ -79,7 +80,7 @@ TEST_CASE("Division must not be in SMPTE format")
     std::vector<std::uint8_t> bad_data {0x4D, 0x54, 0x68, 0x64, 0, 0,    0,
                                         6,    0,    1,    0,    0, 0x80, 0};
 
-    REQUIRE_THROWS([&] { return parse_midi(bad_data); }());
+    REQUIRE_THROWS_AS([&] { return parse_midi(bad_data); }(), ParseError);
 }
 
 TEST_CASE("Track lengths are read correctly")
@@ -101,7 +102,7 @@ TEST_CASE("Track magic number is checked")
     std::vector<std::uint8_t> bad_track {0x40, 0x54, 0x72, 0x6B, 0, 0, 0, 0};
     auto data = midi_from_tracks({bad_track});
 
-    REQUIRE_THROWS([&] { return parse_midi(data); }());
+    REQUIRE_THROWS_AS([&] { return parse_midi(data); }(), ParseError);
 }
 
 TEST_CASE("Event times are handled correctly")
@@ -127,6 +128,16 @@ TEST_CASE("Event times are handled correctly")
 
         REQUIRE(midi.tracks[0].events[1].time == 0x60);
     }
+
+    SECTION("Five byte multi-byte delta times throw")
+    {
+        std::vector<std::uint8_t> track {0x4D, 0x54, 0x72, 0x6B, 0,    0,
+                                         0,    8,    0x8F, 0x8F, 0x8F, 0x8F,
+                                         0x10, 0xFF, 2,    0};
+        const auto data = midi_from_tracks({track});
+
+        REQUIRE_THROWS_AS([&] { return parse_midi(data); }(), ParseError);
+    }
 }
 
 TEST_CASE("Meta events are read")
@@ -150,13 +161,23 @@ TEST_CASE("Meta events are read")
         std::vector<std::uint8_t> track {0x4D, 0x54, 0x72, 0x6B, 0,    0,
                                          0,    8,    0x60, 0xFF, 0x51, 0x80,
                                          3,    8,    0x6B, 0xC3};
-        auto data = midi_from_tracks({track});
+        const auto data = midi_from_tracks({track});
         std::vector<TimedEvent> events {
             {0x60, MetaEvent {0x51, {8, 0x6B, 0xC3}}}};
 
         const auto midi = parse_midi(data);
 
         REQUIRE(midi.tracks[0].events == events);
+    }
+
+    SECTION("Too long meta events throw")
+    {
+        std::vector<std::uint8_t> track {0x4D, 0x54, 0x72, 0x6B, 0,    0,
+                                         0,    8,    0x60, 0xFF, 0x51, 0x80,
+                                         100,  8,    0x6B, 0xC3};
+        const auto data = midi_from_tracks({track});
+
+        REQUIRE_THROWS_AS([&] { return parse_midi(data); }(), ParseError);
     }
 }
 
@@ -225,7 +246,7 @@ TEST_CASE("Midi events are read")
                                          0,    4,    0,    0xF0, 0, 0};
         auto data = midi_from_tracks({track});
 
-        REQUIRE_THROWS([&] { return parse_midi(data); }());
+        REQUIRE_THROWS_AS([&] { return parse_midi(data); }(), ParseError);
     }
 }
 
@@ -235,7 +256,7 @@ TEST_CASE("Sysex events are read")
     {
         std::vector<std::uint8_t> track {0x4D, 0x54, 0x72, 0x6B, 0, 0, 0,
                                          6,    0x0,  0xF0, 3,    1, 2, 3};
-        auto data = midi_from_tracks({track});
+        const auto data = midi_from_tracks({track});
         std::vector<TimedEvent> events {{0, SysexEvent {{1, 2, 3}}}};
 
         const auto midi = parse_midi(data);
@@ -247,11 +268,20 @@ TEST_CASE("Sysex events are read")
     {
         std::vector<std::uint8_t> track {0x4D, 0x54, 0x72, 0x6B, 0, 0, 0, 7,
                                          0x0,  0xF0, 0x80, 3,    1, 2, 3};
-        auto data = midi_from_tracks({track});
+        const auto data = midi_from_tracks({track});
         std::vector<TimedEvent> events {{0, SysexEvent {{1, 2, 3}}}};
 
         const auto midi = parse_midi(data);
 
         REQUIRE(midi.tracks[0].events == events);
+    }
+
+    SECTION("Sysex event with too high length throws")
+    {
+        std::vector<std::uint8_t> track {0x4D, 0x54, 0x72, 0x6B, 0, 0, 0,
+                                         6,    0x0,  0xF0, 100,  1, 2, 3};
+        const auto data = midi_from_tracks({track});
+
+        REQUIRE_THROWS_AS([&] { return parse_midi(data); }(), ParseError);
     }
 }

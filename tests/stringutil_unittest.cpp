@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,4 +66,17 @@ TEST_CASE("to_utf8_string throws on a string with odd length")
     const std::string text {"\xFF\xFE\x6E"};
 
     REQUIRE_THROWS([&] { return to_utf8_string(text); }());
+}
+
+TEST_CASE("to_ordinal works correctly")
+{
+    REQUIRE(to_ordinal(0) == "0th");
+    REQUIRE(to_ordinal(1) == "1st");
+    REQUIRE(to_ordinal(2) == "2nd");
+    REQUIRE(to_ordinal(3) == "3rd");
+    REQUIRE(to_ordinal(4) == "4th");
+    REQUIRE(to_ordinal(11) == "11th");
+    REQUIRE(to_ordinal(12) == "12th");
+    REQUIRE(to_ordinal(13) == "13th");
+    REQUIRE_THROWS([&] { return to_ordinal(-1); }());
 }

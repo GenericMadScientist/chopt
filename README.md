@@ -61,12 +61,12 @@ in cmd then enter to open a command prompt in that folder, then run the command
 ## Dependencies
 
 * [argparse](https://github.com/p-ranav/argparse) 2.1 for argument parsing
-* [Catch2](https://github.com/catchorg/Catch2) 2.13.3 for tests
+* [Catch2](https://github.com/catchorg/Catch2) 2.13.4 for tests
 * [CImg](https://cimg.eu) 2.9.4 to produce images
 * [libpng](http://libpng.org/pub/png/libpng.html) 1.6.37 to save pngs
 * [nowide](https://github.com/boostorg/nowide) 11.0.0 to handle UTF-8 filenames
   on Windows
-* [Qt](https://www.qt.io) 5.15.2 for the GUI
+* [Qt](https://www.qt.io) 6.0.0 for the GUI
 * [zlib](https://zlib.net) 1.2.11 is a dependency of libpng
 
 Catch2 and CImg are vendored in the repo. argparse and nowide (standalone
@@ -84,8 +84,8 @@ details).
 getting an initial idea of Clone Hero's parsing behaviour.
 * Dinoguy1000 and shadoweh helped me make sure CHOpt runs on other peoples'
 machines.
-* Various users for feedback, including CyclopsDragon, DNelson, GHNerd, Jrh,
-LightlessWalk, Lucretio, RileyTheFox, Taka, and Zantor.
+* Various users for feedback, including 3-UP, CyclopsDragon, DNelson, GHNerd,
+Jrh, LightlessWalk, Lucretio, RileyTheFox, Taka, and Zantor.
 
 ## Contact
 

@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include <sstream>
 
 #include "processed.hpp"
+#include "stringutil.hpp"
 
 SpBar ProcessedSong::total_available_sp(Beat start, PointPtr first_point,
                                         PointPtr act_start,
@@ -283,7 +284,7 @@ ProcessedSong::is_candidate_valid(const ActivationCandidate& activation,
 std::string ProcessedSong::path_summary(const Path& path) const
 {
     // We use std::stringstream instead of std::string for better formating of
-    // floats (measure values).
+    // floats (average multiplier and mid-sustain activation positions).
     std::stringstream stream;
 
     auto no_sp_score = std::accumulate(

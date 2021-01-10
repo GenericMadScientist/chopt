@@ -2,4 +2,6 @@
 .vscode/
 build/
 out/
+fuzzing_targets/CHART_CORPUS/
+fuzzing_targets/MIDI_CORPUS/
 CMakeSettings.json

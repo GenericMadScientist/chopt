@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,7 +69,6 @@ TEST_CASE("Chart -> Song has correct value for is_from_midi")
     REQUIRE(!song.is_from_midi());
 }
 
-// Last checked: 24.0.1555-master
 TEST_CASE("Chart reads resolution")
 {
     ChartSection sync_track {"SyncTrack", {}, {}, {}, {}, {}, {}};
@@ -150,7 +149,6 @@ TEST_CASE("Ini values are used for converting from .chart files")
     REQUIRE(song.charter() == "NotGMS");
 }
 
-// Last checked: 24.0.1555-master
 TEST_CASE("Chart reads sync track correctly")
 {
     ChartSection sync_track {"SyncTrack", {}, {{0, 200000}},           {},
@@ -168,7 +166,18 @@ TEST_CASE("Chart reads sync track correctly")
     REQUIRE(chart_sync_track.bpms() == bpms);
 }
 
-// Last checked: 24.0.1555-master
+TEST_CASE("Large time sig denominators cause an exception")
+{
+    ChartSection sync_track {"SyncTrack", {}, {}, {}, {}, {}, {{0, 4, 32}}};
+    ChartSection expert_single {"ExpertSingle", {}, {}, {},
+                                {{768, 0, 0}},  {}, {}};
+    std::vector<ChartSection> sections {sync_track, expert_single};
+    const Chart chart {sections};
+
+    REQUIRE_THROWS_AS([&] { return Song::from_chart(chart, {}); }(),
+                      ParseError);
+}
+
 TEST_CASE("Chart reads easy note track correctly")
 {
     ChartSection easy_single {"EasySingle",    {}, {}, {}, {{768, 0, 0}},
@@ -181,6 +190,20 @@ TEST_CASE("Chart reads easy note track correctly")
     const auto song = Song::from_chart(chart, {});
 
     REQUIRE(song.guitar_note_track(Difficulty::Easy) == note_track);
+}
+
+TEST_CASE("Invalid note values are ignored")
+{
+    ChartSection expert_single {
+        "ExpertSingle", {}, {}, {}, {{768, 0, 0}, {768, 13, 0}}, {}, {}};
+    std::vector<ChartSection> sections {expert_single};
+    const Chart chart {sections};
+    NoteTrack<NoteColour> note_track {
+        {{768, 0, NoteColour::Green}}, {}, {}, 192};
+
+    const auto song = Song::from_chart(chart, {});
+
+    REQUIRE(song.guitar_note_track(Difficulty::Expert) == note_track);
 }
 
 TEST_CASE("SP phrases are read correctly from Chart")
@@ -197,7 +220,6 @@ TEST_CASE("SP phrases are read correctly from Chart")
     REQUIRE(song.guitar_note_track(Difficulty::Expert).sp_phrases().empty());
 }
 
-// Last checked: 24.0.1555-master
 TEST_CASE("Chart does not need sections in usual order")
 {
     SECTION("Non note sections need not be present")
@@ -217,8 +239,10 @@ TEST_CASE("Chart does not need sections in usual order")
         std::vector<ChartSection> sections {expert_single};
         const Chart chart {sections};
 
-        REQUIRE_THROWS([] { return Song::from_chart({}, {}); }());
-        REQUIRE_THROWS([&] { return Song::from_chart(chart, {}); }());
+        REQUIRE_THROWS_AS([] { return Song::from_chart({}, {}); }(),
+                          ParseError);
+        REQUIRE_THROWS_AS([&] { return Song::from_chart(chart, {}); }(),
+                          ParseError);
     }
 
     SECTION("Non note sections can be in any order")
@@ -242,7 +266,6 @@ TEST_CASE("Chart does not need sections in usual order")
     }
 }
 
-// Last checked: 24.0.1555-master
 TEST_CASE("Only first non-empty part of note sections matter")
 {
     SECTION("Later non-empty sections are ignored")
@@ -558,7 +581,8 @@ TEST_CASE("Midi resolution is read correctly")
     {
         const Midi midi {0, {}};
 
-        REQUIRE_THROWS([&] { return Song::from_midi(midi, {}); }());
+        REQUIRE_THROWS_AS([&] { return Song::from_midi(midi, {}); }(),
+                          ParseError);
     }
 }
 
@@ -578,6 +602,15 @@ TEST_CASE("First track is read correctly")
         REQUIRE(sync_track.time_sigs() == tempos.time_sigs());
     }
 
+    SECTION("Too short tempo events cause an exception")
+    {
+        MidiTrack tempo_track {{{0, {MetaEvent {0x51, {6, 0x1A}}}}}};
+        const Midi midi {192, {tempo_track}};
+
+        REQUIRE_THROWS_AS([&] { return Song::from_midi(midi, {}); }(),
+                          ParseError);
+    }
+
     SECTION("Time signatures are read correctly")
     {
         MidiTrack ts_track {{{0, {MetaEvent {0x58, {6, 2, 24, 8}}}},
@@ -590,6 +623,24 @@ TEST_CASE("First track is read correctly")
 
         REQUIRE(sync_track.bpms() == tses.bpms());
         REQUIRE(sync_track.time_sigs() == tses.time_sigs());
+    }
+
+    SECTION("Time signatures with large denominators cause an exception")
+    {
+        MidiTrack ts_track {{{0, {MetaEvent {0x58, {6, 32, 24, 8}}}}}};
+        const Midi midi {192, {ts_track}};
+
+        REQUIRE_THROWS_AS([&] { return Song::from_midi(midi, {}); }(),
+                          ParseError);
+    }
+
+    SECTION("Too short time sig events cause an exception")
+    {
+        MidiTrack ts_track {{{0, {MetaEvent {0x58, {6}}}}}};
+        const Midi midi {192, {ts_track}};
+
+        REQUIRE_THROWS_AS([&] { return Song::from_midi(midi, {}); }(),
+                          ParseError);
     }
 
     SECTION("Song name is not read from midi")
@@ -708,7 +759,8 @@ TEST_CASE("Notes are read correctly")
                                {1152, {MidiEvent {0x90, {96, 64}}}}}};
         const Midi midi {192, {note_track}};
 
-        REQUIRE_THROWS([&] { return Song::from_midi(midi, {}); }());
+        REQUIRE_THROWS_AS([&] { return Song::from_midi(midi, {}); }(),
+                          ParseError);
     }
 
     SECTION("Corresponding Note Off events are after Note On events")
@@ -800,6 +852,19 @@ TEST_CASE("Notes are read correctly")
         REQUIRE(notes.size() == 1);
     }
 
+    SECTION("ParseError thrown if NoteOn has no corresponding NoteOff track")
+    {
+        MidiTrack note_track {{{0,
+                                {MetaEvent {3,
+                                            {0x50, 0x41, 0x52, 0x54, 0x20, 0x47,
+                                             0x55, 0x49, 0x54, 0x41, 0x52}}}},
+                               {768, {MidiEvent {0x90, {96, 64}}}}}};
+        const Midi midi {192, {note_track}};
+
+        REQUIRE_THROWS_AS([&] { return Song::from_midi(midi, {}); }(),
+                          ParseError);
+    }
+
     SECTION("Open notes are read correctly")
     {
         MidiTrack note_track {
@@ -817,6 +882,22 @@ TEST_CASE("Notes are read correctly")
 
         REQUIRE(song.guitar_note_track(Difficulty::Expert).notes()[0].colour
                 == NoteColour::Open);
+    }
+
+    SECTION("ParseError thrown if open Note Ons have no Note Offs")
+    {
+        MidiTrack note_track {
+            {{0,
+              {MetaEvent {3,
+                          {0x50, 0x41, 0x52, 0x54, 0x20, 0x47, 0x55, 0x49, 0x54,
+                           0x41, 0x52}}}},
+             {768, {MidiEvent {0x90, {96, 64}}}},
+             {768, {SysexEvent {{0x50, 0x53, 0, 0, 3, 1, 1, 0xF7}}}},
+             {960, {MidiEvent {0x90, {96, 0}}}}}};
+        const Midi midi {192, {note_track}};
+
+        REQUIRE_THROWS_AS([&] { return Song::from_midi(midi, {}); }(),
+                          ParseError);
     }
 }
 
@@ -874,7 +955,8 @@ TEST_CASE("Star Power is read")
                                {960, {MidiEvent {0x80, {96, 0}}}}}};
         const Midi midi {192, {note_track}};
 
-        REQUIRE_THROWS([&] { return Song::from_midi(midi, {}); }());
+        REQUIRE_THROWS_AS([&] { return Song::from_midi(midi, {}); }(),
+                          ParseError);
     }
 }
 

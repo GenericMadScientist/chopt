@@ -4,7 +4,7 @@ cmake_policy(SET CMP0091 NEW)
 
 project(
   chopt
-  VERSION 1.2.1
+  VERSION 1.2.2
   DESCRIPTION "A program to generate optimal Star Power paths for Clone Hero"
   LANGUAGES CXX)
 
@@ -109,7 +109,7 @@ enable_sanitisers(chopt)
 option(BUILD_GUI "Build the GUI version" ON)
 if(BUILD_GUI)
   find_package(
-    Qt5
+    Qt6
     COMPONENTS Widgets
     REQUIRED)
 
@@ -143,7 +143,7 @@ if(BUILD_GUI)
     choptgui PRIVATE "${PROJECT_SOURCE_DIR}/include"
                      "${PROJECT_SOURCE_DIR}/libs" ${PNG_INCLUDE_DIRS})
   target_link_libraries_system(choptgui PRIVATE argparse nowide)
-  target_link_libraries(choptgui PRIVATE ${PNG_LIBRARIES} Qt5::Widgets)
+  target_link_libraries(choptgui PRIVATE ${PNG_LIBRARIES} Qt6::Widgets)
 
   set_property(TARGET choptgui PROPERTY POSITION_INDEPENDENT_CODE FALSE)
   set_property(
@@ -158,6 +158,11 @@ option(PACKAGE_TESTS "Build the tests" ON)
 if(PACKAGE_TESTS)
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+option(BUILD_FUZZ_TARGETS "Build the fuzzing targets" OFF)
+if(BUILD_FUZZ_TARGETS)
+  add_subdirectory(fuzzing_targets)
 endif()
 
 option(ENABLE_LTO "Enable Link Time Optimisation" OFF)

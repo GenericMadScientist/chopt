@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <climits>
 #include <filesystem>
 #include <iterator>
 #include <optional>
@@ -139,6 +140,9 @@ static std::optional<Note<T>> note_from_note_colour(int position, int length,
             NoteColour::Green, NoteColour::Red,    NoteColour::Yellow,
             NoteColour::Blue,  NoteColour::Orange, std::nullopt,
             std::nullopt,      NoteColour::Open};
+        if (static_cast<std::size_t>(fret_type) >= COLOURS.size()) {
+            return std::nullopt;
+        }
         const auto colour = COLOURS.at(static_cast<std::size_t>(fret_type));
         if (!colour.has_value()) {
             return std::nullopt;
@@ -155,6 +159,9 @@ static std::optional<Note<T>> note_from_note_colour(int position, int length,
             std::nullopt,
             GHLNoteColour::Open,
             GHLNoteColour::BlackHigh};
+        if (static_cast<std::size_t>(fret_type) >= COLOURS.size()) {
+            return std::nullopt;
+        }
         const auto colour = COLOURS.at(static_cast<std::size_t>(fret_type));
         if (!colour.has_value()) {
             return std::nullopt;
@@ -392,6 +399,10 @@ Song Song::from_chart(const Chart& chart, const IniValues& ini)
             }
             std::vector<TimeSignature> tses;
             for (const auto& ts : section.ts_events) {
+                if (static_cast<std::size_t>(ts.denominator)
+                    >= (CHAR_BIT * sizeof(int))) {
+                    throw ParseError("Invalid Time Signature denominator");
+                }
                 tses.push_back(
                     {ts.position, ts.numerator, 1 << ts.denominator});
             }
@@ -426,7 +437,7 @@ Song Song::from_chart(const Chart& chart, const IniValues& ini)
 
     if (song.m_five_fret_tracks.empty() && song.m_six_fret_tracks.empty()
         && song.m_drum_note_tracks.empty()) {
-        throw std::invalid_argument("Chart has no notes");
+        throw ParseError("Chart has no notes");
     }
 
     return song;
@@ -457,7 +468,7 @@ combine_note_on_off_events(const std::vector<std::tuple<int, int>>& on_events,
     }
 
     if (on_iter != on_events.cend()) {
-        throw std::invalid_argument("on event has no corresponding off event");
+        throw ParseError("on event has no corresponding off event");
     }
 
     return ranges;
@@ -541,7 +552,7 @@ template <typename T> static T colour_from_key(std::uint8_t key)
         } else if (key >= EASY_GREEN && key <= EASY_ORANGE) {
             key -= EASY_GREEN;
         } else {
-            throw std::invalid_argument("Invalid key for note");
+            throw ParseError("Invalid key for note");
         }
 
         return NOTE_COLOURS.at(key);
@@ -570,7 +581,7 @@ template <typename T> static T colour_from_key(std::uint8_t key)
         } else if (key >= EASY_OPEN && key <= EASY_BLACK_HIGH) {
             key -= EASY_OPEN;
         } else {
-            throw std::invalid_argument("Invalid key for note");
+            throw ParseError("Invalid key for note");
         }
 
         return GHL_NOTE_COLOURS.at(key);
@@ -598,7 +609,7 @@ template <typename T> static T colour_from_key(std::uint8_t key)
         } else if (key >= EASY_KICK && key <= EASY_GREEN) {
             key -= EASY_KICK;
         } else {
-            throw std::invalid_argument("Invalid key for note");
+            throw ParseError("Invalid key for note");
         }
 
         return DRUM_NOTE_COLOURS.at(key);
@@ -643,6 +654,9 @@ static SyncTrack read_first_midi_track(const MidiTrack& track)
         }
         switch (meta_event->type) {
         case SET_TEMPO_ID: {
+            if (meta_event->data.size() < 3) {
+                throw ParseError("Tempo meta event too short");
+            }
             const auto us_per_quarter = meta_event->data[0] << 16
                 | meta_event->data[1] << 8 | meta_event->data[2];
             const auto bpm = 60000000000 / us_per_quarter;
@@ -650,6 +664,12 @@ static SyncTrack read_first_midi_track(const MidiTrack& track)
             break;
         }
         case TIME_SIG_ID:
+            if (meta_event->data.size() < 2) {
+                throw ParseError("Tempo meta event too short");
+            }
+            if (meta_event->data[1] >= (CHAR_BIT * sizeof(int))) {
+                throw ParseError("Time sig denominator too large");
+            }
             time_sigs.push_back(
                 {event.time, meta_event->data[0], 1 << meta_event->data[1]});
             break;
@@ -807,6 +827,9 @@ note_tracks_from_midi(const MidiTrack& midi_track, int resolution)
 
     std::map<Difficulty, std::vector<std::tuple<int, int>>> open_events;
     for (const auto& [diff, open_ons] : event_track.open_on_events) {
+        if (event_track.open_off_events.count(diff) == 0) {
+            throw ParseError("No open Note Off events");
+        }
         const auto& open_offs = event_track.open_off_events.at(diff);
         open_events[diff] = combine_note_on_off_events(open_ons, open_offs);
     }
@@ -814,6 +837,9 @@ note_tracks_from_midi(const MidiTrack& midi_track, int resolution)
     std::map<Difficulty, std::vector<Note<NoteColour>>> notes;
     for (const auto& [key, note_ons] : event_track.note_on_events) {
         const auto& [diff, colour] = key;
+        if (event_track.note_off_events.count(key) == 0) {
+            throw ParseError("No corresponding Note Off events");
+        }
         const auto& note_offs = event_track.note_off_events.at(key);
         for (const auto& [pos, end] :
              combine_note_on_off_events(note_ons, note_offs)) {
@@ -865,6 +891,9 @@ ghl_note_tracks_from_midi(const MidiTrack& midi_track, int resolution)
     std::map<Difficulty, std::vector<Note<GHLNoteColour>>> notes;
     for (const auto& [key, note_ons] : event_track.note_on_events) {
         const auto& [diff, colour] = key;
+        if (event_track.note_off_events.count(key) == 0) {
+            throw ParseError("No corresponding Note Off events");
+        }
         const auto& note_offs = event_track.note_off_events.at(key);
         for (const auto& [pos, end] :
              combine_note_on_off_events(note_ons, note_offs)) {
@@ -917,6 +946,9 @@ drum_note_tracks_from_midi(const MidiTrack& midi_track, int resolution)
     std::map<Difficulty, std::vector<Note<DrumNoteColour>>> notes;
     for (const auto& [key, note_ons] : event_track.note_on_events) {
         const auto& [diff, colour] = key;
+        if (event_track.note_off_events.count(key) == 0) {
+            throw ParseError("No corresponding Note Off events");
+        }
         const auto& note_offs = event_track.note_off_events.at(key);
         for (const auto& [pos, end] :
              combine_note_on_off_events(note_ons, note_offs)) {
@@ -1011,7 +1043,7 @@ static std::optional<Instrument> midi_section_instrument(const MidiTrack& track)
 Song Song::from_midi(const Midi& midi, const IniValues& ini)
 {
     if (midi.ticks_per_quarter_note == 0) {
-        throw std::invalid_argument("Resolution must be > 0");
+        throw ParseError("Resolution must be > 0");
     }
 
     Song song;

@@ -22,13 +22,12 @@ for song in songs:
     output_lines.append(f"Total score: {total_score}")
     output_lines.append(f"Average multiplier: {avg_mult}x")
     c.execute(
-        ("select ActivationNumber, Start, End from Activations "
-         "where SongID = ? order by ActivationNumber"),
+        ("select Description from Activations where SongID = ? "
+         "order by ActivationNumber"),
         (song_id,),
     )
-    for act_num, start, end in c.fetchall():
-        act_range = f"Measure {start} to Measure {end}"
-        output_lines.append(f"Activation {act_num}: {act_range}")
+    for description, activation in zip(c.fetchall(), path.split("-")):
+        output_lines.append(f"{activation}: {description[0]}")
     output_lines.append("")
     outputs.append("\r\n".join(output_lines).encode("utf-8"))
 

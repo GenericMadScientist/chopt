@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdexcept>
-
 #include "songparts.hpp"
 
 SyncTrack::SyncTrack(std::vector<TimeSignature> time_sigs,
@@ -27,13 +25,12 @@ SyncTrack::SyncTrack(std::vector<TimeSignature> time_sigs,
 
     for (const auto& bpm : bpms) {
         if (bpm.bpm <= 0) {
-            throw std::invalid_argument("BPMs must be positive");
+            throw ParseError("BPMs must be positive");
         }
     }
     for (const auto& ts : time_sigs) {
         if (ts.numerator <= 0 || ts.denominator <= 0) {
-            throw std::invalid_argument(
-                "Time signatures must be positive/positive");
+            throw ParseError("Time signatures must be positive/positive");
         }
     }
 

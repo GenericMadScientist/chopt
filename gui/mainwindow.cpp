@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,6 @@
 #include "optimiser.hpp"
 #include "ui_mainwindow.h"
 
-Q_DECLARE_METATYPE(Difficulty)
-Q_DECLARE_METATYPE(Instrument)
-Q_DECLARE_METATYPE(std::optional<Song>)
-
 class ParserThread : public QThread {
     Q_OBJECT
 
@@ -52,15 +48,15 @@ public:
             emit result_ready(Song::from_filename(m_file_name.toStdString()),
                               m_file_name);
         } catch (const std::exception&) {
-            emit result_ready({}, "");
+            emit parsing_failed(m_file_name);
         }
     }
 
     void set_file_name(const QString& file_name) { m_file_name = file_name; }
 
 signals:
-    void result_ready(const std::optional<Song>& song,
-                      const QString& file_name);
+    void parsing_failed(const QString& file_name);
+    void result_ready(const Song& song, const QString& file_name);
 };
 
 class OptimiserThread : public QThread {
@@ -114,8 +110,6 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , m_ui {std::make_unique<Ui::MainWindow>()}
 {
-    qRegisterMetaType<std::optional<Song>>();
-
     m_ui->setupUi(this);
     m_ui->instrumentComboBox->setEnabled(false);
     m_ui->difficultyComboBox->setEnabled(false);
@@ -237,6 +231,8 @@ void MainWindow::load_file(const QString& file_name)
     worker_thread->set_file_name(file_name);
     connect(worker_thread, &ParserThread::result_ready, this,
             &MainWindow::song_read);
+    connect(worker_thread, &ParserThread::parsing_failed, this,
+            &MainWindow::parsing_failed);
     connect(worker_thread, &ParserThread::finished, worker_thread,
             &QObject::deleteLater);
     m_thread = worker_thread;
@@ -279,17 +275,16 @@ void MainWindow::on_findPathButton_clicked()
     worker_thread->start();
 }
 
-void MainWindow::song_read(const std::optional<Song>& song,
-                           const QString& file_name)
+void MainWindow::parsing_failed(const QString& file_name)
 {
     m_thread = nullptr;
+    write_message(file_name + " invalid");
+    m_ui->selectFileButton->setEnabled(true);
+}
 
-    if (!song.has_value()) {
-        write_message(file_name + " invalid");
-        m_ui->selectFileButton->setEnabled(true);
-        return;
-    }
-
+void MainWindow::song_read(const Song& song, const QString& file_name)
+{
+    m_thread = nullptr;
     m_song = song;
 
     m_ui->instrumentComboBox->clear();

@@ -2,8 +2,8 @@
 
 IDR_MAINFRAME ICON "icon.ico"
 1 VERSIONINFO
-    FILEVERSION    1,2,1,0
-    PRODUCTVERSION 1,2,1,0
+    FILEVERSION    1,2,2,0
+    PRODUCTVERSION 1,2,2,0
     FILEFLAGS      VS_FF_SPECIALBUILD
 {
     BLOCK "StringFileInfo"
@@ -11,10 +11,10 @@ IDR_MAINFRAME ICON "icon.ico"
         BLOCK "080904B0"
         {
             VALUE "FileDescription", "CHOpt\0",
-            VALUE "FileVersion", "1.2.1.0\0",
+            VALUE "FileVersion", "1.2.2.0\0",
             VALUE "OriginalFilename", "CHOpt.exe\0",
             VALUE "ProductName", "CHOpt\0",
-            VALUE "ProductVersion", "1.2.1.0\0",
+            VALUE "ProductVersion", "1.2.2.0\0",
             VALUE "SpecialBuild", "Version for Lucretio\0"
         }
     }
