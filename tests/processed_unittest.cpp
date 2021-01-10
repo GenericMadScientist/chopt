@@ -766,11 +766,9 @@ TEST_CASE("path_summary produces the correct output")
                      Beat {0.0}, Beat {0.0}}},
                    50};
 
-        const char* desired_path_output = "Path: 2\n"
-                                          "No SP score: 178\n"
+        const char* desired_path_output = "No SP score: 178\n"
                                           "Total score: 228\n"
-                                          "Average multiplier: 1.303x\n"
-                                          "2: NN";
+                                          "Average multiplier: 1.303x";
 
         REQUIRE(second_track.path_summary(path) == desired_path_output);
     }
@@ -788,11 +786,9 @@ TEST_CASE("path_summary produces the correct output")
                      Beat {0.0}, Beat {0.0}}},
                    28};
 
-        const char* desired_path_output = "Path: 2\n"
-                                          "No SP score: 178\n"
+        const char* desired_path_output = "No SP score: 178\n"
                                           "Total score: 206\n"
-                                          "Average multiplier: 1.177x\n"
-                                          "2: 0.03 beats after NN";
+                                          "Average multiplier: 1.177x";
 
         REQUIRE(second_track.path_summary(path) == desired_path_output);
     }
@@ -811,11 +807,9 @@ TEST_CASE("path_summary produces the correct output")
                      Beat {0.0}, Beat {0.0}}},
                    50};
 
-        const char* desired_path_output = "Path: 2\n"
-                                          "No SP score: 200\n"
+        const char* desired_path_output = "No SP score: 200\n"
                                           "Total score: 250\n"
-                                          "Average multiplier: 1.250x\n"
-                                          "2: 1st R";
+                                          "Average multiplier: 1.250x";
 
         REQUIRE(second_track.path_summary(path) == desired_path_output);
     }
@@ -833,11 +827,9 @@ TEST_CASE("path_summary produces the correct output")
                      Beat {0.0}, Beat {0.0}}},
                    28};
 
-        const char* desired_path_output = "Path: 2\n"
-                                          "No SP score: 128\n"
+        const char* desired_path_output = "No SP score: 128\n"
                                           "Total score: 156\n"
-                                          "Average multiplier: 1.248x\n"
-                                          "2: After 0.03 beats";
+                                          "Average multiplier: 1.248x";
 
         REQUIRE(second_track.path_summary(path) == desired_path_output);
     }
@@ -855,11 +847,9 @@ TEST_CASE("path_summary produces the correct output")
                      Beat {0.0}, Beat {0.0}}},
                    1};
 
-        const char* desired_path_output = "Path: 0-ES1\n"
-                                          "No SP score: 539\n"
+        const char* desired_path_output = "No SP score: 539\n"
                                           "Total score: 540\n"
-                                          "Average multiplier: 1.080x\n"
-                                          "0: See image";
+                                          "Average multiplier: 1.080x";
 
         REQUIRE(second_track.path_summary(path) == desired_path_output);
     }
