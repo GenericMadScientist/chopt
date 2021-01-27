@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,6 +69,7 @@ private:
     std::vector<std::tuple<double, double>> m_yellow_ranges;
     std::vector<std::tuple<double, double>> m_solo_ranges;
     float m_activation_opacity {0.33F};
+    int m_total_score {0};
 
 public:
     ImageBuilder(const NoteTrack<NoteColour>& track,
@@ -90,6 +91,8 @@ public:
     void add_sp_phrases(const NoteTrack<DrumNoteColour>& track);
     void add_sp_values(const SpData& sp_data);
     void add_time_sigs(const SyncTrack& sync_track, int resolution);
+    void set_total_score(const PointSet& points, const std::vector<Solo>& solos,
+                         const Path& path);
 
     [[nodiscard]] const std::string& artist() const { return m_artist; }
     [[nodiscard]] const std::vector<int>& base_values() const
@@ -172,6 +175,7 @@ public:
         return m_activation_opacity;
     }
     float& activation_opacity() { return m_activation_opacity; }
+    [[nodiscard]] int total_score() const { return m_total_score; }
 };
 
 ImageBuilder make_builder(const Song& song, const Settings& settings,

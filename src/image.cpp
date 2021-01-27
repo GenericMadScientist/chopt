@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ constexpr int LEFT_MARGIN = 31;
 constexpr int MARGIN = 80;
 constexpr int MEASURE_HEIGHT = 61;
 constexpr float OPEN_NOTE_OPACITY = 0.5F;
-constexpr int TOP_MARGIN = 70;
+constexpr int TOP_MARGIN = 100;
 constexpr int DIST_BETWEEN_MEASURES = MEASURE_HEIGHT + MARGIN;
 
 static std::array<unsigned char, 3> note_colour_to_colour(NoteColour colour)
@@ -228,11 +228,12 @@ void ImageImpl::draw_header(const ImageBuilder& builder)
     constexpr std::array<unsigned char, 3> BLACK {0, 0, 0};
     constexpr int HEADER_FONT_HEIGHT = 23;
 
-    auto x = LEFT_MARGIN;
-    auto y = LEFT_MARGIN;
-    m_image.draw_text(x, y, "%s\n%s\n%s", BLACK.data(), 0, 1.0,
-                      HEADER_FONT_HEIGHT, builder.song_name().c_str(),
-                      builder.artist().c_str(), builder.charter().c_str());
+    const auto x = LEFT_MARGIN;
+    const auto y = LEFT_MARGIN;
+    m_image.draw_text(x, y, "%s\n%s\n%s\nTotal score = %d", BLACK.data(), 0,
+                      1.0, HEADER_FONT_HEIGHT, builder.song_name().c_str(),
+                      builder.artist().c_str(), builder.charter().c_str(),
+                      builder.total_score());
 }
 
 static int numb_of_fret_lines(TrackType track_type)

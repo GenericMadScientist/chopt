@@ -1,6 +1,6 @@
 /*
  * CHOpt - Star Power optimiser for Clone Hero
- * Copyright (C) 2020 Raymond Wright
+ * Copyright (C) 2020, 2021 Raymond Wright
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -477,6 +477,19 @@ void ImageBuilder::add_time_sigs(const SyncTrack& sync_track, int resolution)
     }
 }
 
+void ImageBuilder::set_total_score(const PointSet& points,
+                                   const std::vector<Solo>& solos,
+                                   const Path& path)
+{
+    auto no_sp_score = std::accumulate(
+        points.cbegin(), points.cend(), 0,
+        [](const auto x, const auto& y) { return x + y.value; });
+    no_sp_score += std::accumulate(
+        solos.cbegin(), solos.cend(), 0,
+        [](const auto x, const auto& y) { return x + y.value; });
+    m_total_score = no_sp_score + path.score_boost;
+}
+
 const static NoteTrack<NoteColour>&
 track_from_inst_diff(const Settings& settings, const Song& song)
 {
@@ -550,6 +563,8 @@ make_builder_from_track(const Song& song, const NoteTrack<T>& track,
         const Optimiser optimiser {&processed_track, terminate};
         const auto path = optimiser.optimal_path();
         write(processed_track.path_summary(path).c_str());
+        builder.set_total_score(processed_track.points(), new_track.solos(),
+                                path);
     }
 
     builder.add_measure_values(processed_track.points(),
